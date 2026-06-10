@@ -139,6 +139,7 @@ let tray: Tray | null = null;
 let trayContextMenu: Menu | null = null;
 let selectedSourceName = "";
 let editorHasUnsavedChanges = false;
+let editorHasActiveExport = false;
 let isForceClosing = false;
 let isCreatingMainWindow = false;
 let isCreatingEditorWindow = false;
@@ -243,6 +244,10 @@ function showHudOverlayFromTray() {
 
 ipcMain.on("set-has-unsaved-changes", (_event, hasChanges: boolean) => {
 	editorHasUnsavedChanges = hasChanges;
+});
+
+ipcMain.on("set-has-active-export", (_event, hasActiveExport: boolean) => {
+	editorHasActiveExport = hasActiveExport;
 });
 
 function createWindow() {
@@ -798,6 +803,7 @@ function createEditorWindowWrapper() {
 	const editorWindow = createEditorWindow();
 	mainWindow = editorWindow;
 	editorHasUnsavedChanges = false;
+	editorHasActiveExport = false;
 
 	editorWindow.on("closed", () => {
 		if (mainWindow === editorWindow) {
@@ -806,10 +812,35 @@ function createEditorWindowWrapper() {
 		isCreatingEditorWindow = false;
 		isForceClosing = false;
 		editorHasUnsavedChanges = false;
+		editorHasActiveExport = false;
 	});
 
 	editorWindow.on("close", (event) => {
-		if (isForceClosing || !editorHasUnsavedChanges) {
+		if (isForceClosing) {
+			return;
+		}
+
+		if (editorHasActiveExport) {
+			event.preventDefault();
+
+			const choice = dialog.showMessageBoxSync(editorWindow, {
+				type: "warning",
+				buttons: ["Keep Working", "Discard Recording & Close"],
+				defaultId: 0,
+				cancelId: 0,
+				title: "Export in Progress",
+				message: "Your video is still being processed.",
+				detail:
+					"Closing now will permanently delete the unprocessed recording data. This cannot be undone.\n\nWait for processing to finish to keep the full recording.",
+			});
+
+			if (choice === 1) {
+				closeEditorWindowBypassingUnsavedPrompt(editorWindow);
+			}
+			return;
+		}
+
+		if (!editorHasUnsavedChanges) {
 			return;
 		}
 

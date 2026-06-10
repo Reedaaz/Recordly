@@ -546,6 +546,7 @@ export default function VideoEditor() {
 	const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+	const hasActiveExportRef = useRef(false);
 	const [exportError, setExportError] = useState<string | null>(null);
 	const [showExportDropdown, setShowExportDropdown] = useState(false);
 	const [previewVolume, setPreviewVolume] = useState(1);
@@ -1410,7 +1411,14 @@ export default function VideoEditor() {
 			exporterRef.current = null;
 			const pending = pendingExportSaveRef.current;
 			pendingExportSaveRef.current = null;
-			if (pending?.tempFilePath && typeof window !== "undefined") {
+			// Keep the temp file when an export/finalization is still running:
+			// deleting it here races the in-flight finalize IPC and destroys
+			// the only copy of the recording data (#633).
+			if (
+				pending?.tempFilePath &&
+				typeof window !== "undefined" &&
+				!hasActiveExportRef.current
+			) {
 				void window.electronAPI.discardExportedTemp?.(pending.tempFilePath);
 			}
 			if (pendingTelemetryRetryTimeoutRef.current !== null) {
@@ -2900,6 +2908,12 @@ export default function VideoEditor() {
 	useEffect(() => {
 		window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
 	}, [hasUnsavedChanges]);
+
+	useEffect(() => {
+		const hasActiveExport = isExporting || exportProgress !== null;
+		hasActiveExportRef.current = hasActiveExport;
+		window.electronAPI.setHasActiveExport?.(hasActiveExport);
+	}, [isExporting, exportProgress]);
 
 	useEffect(() => {
 		const cleanup = window.electronAPI.onRequestSaveBeforeClose(async () => {

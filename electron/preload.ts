@@ -942,6 +942,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	setHasUnsavedChanges: (hasChanges: boolean) => {
 		ipcRenderer.send("set-has-unsaved-changes", hasChanges);
 	},
+	setHasActiveExport: (hasActiveExport: boolean) => {
+		ipcRenderer.send("set-has-active-export", hasActiveExport);
+	},
 	onRequestSaveBeforeClose: (callback: () => Promise<boolean>) => {
 		const listener = async () => {
 			let saved = false;
