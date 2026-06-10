@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { deriveNextId } from "./projectPersistence";
 
 import {
+	clipsToTrims,
 	extendAutoFullTrackClip,
 	findClipAtTimelineTime,
+	getClipSourceEndMs,
+	getClipSourceStartMs,
 	getTimelineDurationMs,
 	mapSourceTimeToTimelineTime,
 	mapTimelineTimeToSourceTime,
@@ -112,6 +115,17 @@ describe("extendAutoFullTrackClip", () => {
 			),
 		).toBeNull();
 	});
+
+	it("does not change clips whose source content no longer starts at zero", () => {
+		expect(
+			extendAutoFullTrackClip(
+				[{ id: "clip-1", startMs: 0, endMs: 5_000, speed: 1, sourceStartMs: 5_000 }],
+				"clip-1",
+				5_000,
+				8_000,
+			),
+		).toBeNull();
+	});
 });
 
 describe("clip timeline mapping", () => {
@@ -143,6 +157,52 @@ describe("clip timeline mapping", () => {
 	it("finds clips only inside visible kept spans", () => {
 		expect(findClipAtTimelineTime(500, clips)?.id).toBe("clip-1");
 		expect(findClipAtTimelineTime(5_000, clips)).toBeNull();
+	});
+
+	it("maps a repositioned clip through its source start (#643)", () => {
+		// Split a 0-10s recording at 5s, delete the left half, drag the right
+		// half to the start of the timeline: timeline 0-5s shows source 5-10s.
+		const movedClip = [
+			{ id: "clip-2", startMs: 0, endMs: 5_000, speed: 1, sourceStartMs: 5_000 },
+		];
+
+		expect(getClipSourceStartMs(movedClip[0])).toBe(5_000);
+		expect(getClipSourceEndMs(movedClip[0])).toBe(10_000);
+		expect(mapTimelineTimeToSourceTime(0, movedClip)).toBe(5_000);
+		expect(mapTimelineTimeToSourceTime(2_500, movedClip)).toBe(7_500);
+		expect(mapSourceTimeToTimelineTime(5_000, movedClip)).toBe(0);
+		expect(mapSourceTimeToTimelineTime(7_500, movedClip)).toBe(2_500);
+	});
+
+	it("maps repositioned sped-up clips through their source start", () => {
+		const movedClip = [
+			{ id: "clip-2", startMs: 1_000, endMs: 3_000, speed: 2, sourceStartMs: 6_000 },
+		];
+
+		expect(getClipSourceEndMs(movedClip[0])).toBe(10_000);
+		expect(mapTimelineTimeToSourceTime(2_000, movedClip)).toBe(8_000);
+		expect(mapSourceTimeToTimelineTime(8_000, movedClip)).toBe(2_000);
+	});
+
+	it("derives trim gaps from source coordinates for repositioned clips", () => {
+		const movedClip = [
+			{ id: "clip-2", startMs: 0, endMs: 5_000, speed: 1, sourceStartMs: 5_000 },
+		];
+
+		expect(clipsToTrims(movedClip, 10_000)).toEqual([
+			{ id: "trim-gap-1", startMs: 0, endMs: 5_000 },
+		]);
+	});
+
+	it("keeps legacy clips without sourceStartMs unchanged", () => {
+		const legacyClips = [{ id: "clip-1", startMs: 2_000, endMs: 6_000, speed: 1 }];
+
+		expect(getClipSourceStartMs(legacyClips[0])).toBe(2_000);
+		expect(mapTimelineTimeToSourceTime(3_000, legacyClips)).toBe(3_000);
+		expect(clipsToTrims(legacyClips, 8_000)).toEqual([
+			{ id: "trim-gap-1", startMs: 0, endMs: 2_000 },
+			{ id: "trim-gap-2", startMs: 6_000, endMs: 8_000 },
+		]);
 	});
 
 	it("derives the next clip id after converting trim gaps into clip ids", () => {

@@ -201,6 +201,7 @@ import {
 	extendAutoFullTrackClip,
 	type FigureData,
 	getClipSourceEndMs,
+	getClipSourceStartMs,
 	getTimelineDurationMs,
 	type Padding,
 	mapSourceTimeToTimelineTime as resolveSourceTimeToTimelineTime,
@@ -1144,7 +1145,7 @@ export default function VideoEditor() {
 							.filter((clip) => clip.speed !== 1)
 							.map((clip) => ({
 								id: `clip-speed-${clip.id}`,
-								startMs: clip.startMs,
+								startMs: getClipSourceStartMs(clip),
 								endMs: getClipSourceEndMs(clip),
 								speed: clip.speed as SpeedRegion["speed"],
 							}));
@@ -3305,7 +3306,7 @@ export default function VideoEditor() {
 			.filter((clip) => clip.speed !== 1)
 			.map((clip) => ({
 				id: `clip-speed-${clip.id}`,
-				startMs: clip.startMs,
+				startMs: getClipSourceStartMs(clip),
 				endMs: getClipSourceEndMs(clip),
 				speed: clip.speed as SpeedRegion["speed"],
 			}));
@@ -3664,12 +3665,16 @@ export default function VideoEditor() {
 				if (!target) return prev;
 				const leftId = `clip-${nextClipIdRef.current++}`;
 				const rightId = `clip-${nextClipIdRef.current++}`;
+				const targetSourceStartMs = getClipSourceStartMs(target);
+				const targetSpeed =
+					Number.isFinite(target.speed) && target.speed > 0 ? target.speed : 1;
 				const left: ClipRegion = {
 					id: leftId,
 					startMs: target.startMs,
 					endMs: Math.round(splitMs),
 					speed: target.speed,
 					muted: target.muted,
+					sourceStartMs: targetSourceStartMs,
 				};
 				const right: ClipRegion = {
 					id: rightId,
@@ -3677,6 +3682,9 @@ export default function VideoEditor() {
 					endMs: target.endMs,
 					speed: target.speed,
 					muted: target.muted,
+					sourceStartMs: Math.round(
+						targetSourceStartMs + (splitMs - target.startMs) * targetSpeed,
+					),
 				};
 				if (selectedClipId === target.id) {
 					setSelectedClipId(leftId);
@@ -3703,11 +3711,11 @@ export default function VideoEditor() {
 					]
 				: [];
 
-			if (oldClip) {
-				const startDelta = newStart - oldClip.startMs;
-				const endDelta = newEnd - oldClip.endMs;
-				const isMove = Math.abs(startDelta - endDelta) < 1 && Math.abs(startDelta) > 0;
+			const startDelta = oldClip ? newStart - oldClip.startMs : 0;
+			const endDelta = oldClip ? newEnd - oldClip.endMs : 0;
+			const isMove = Math.abs(startDelta - endDelta) < 1 && Math.abs(startDelta) > 0;
 
+			if (oldClip) {
 				if (isMove) {
 					const delta = startDelta;
 					setZoomRegions((prev) =>
@@ -3746,9 +3754,22 @@ export default function VideoEditor() {
 			}
 
 			setClipRegions((prev) =>
-				prev.map((clip) =>
-					clip.id === id ? { ...clip, startMs: newStart, endMs: newEnd } : clip,
-				),
+				prev.map((clip) => {
+					if (clip.id !== id) return clip;
+					const sourceStartMs = getClipSourceStartMs(clip);
+					const speed = Number.isFinite(clip.speed) && clip.speed > 0 ? clip.speed : 1;
+					// Moving a clip keeps its source content; resizing the left edge
+					// trims (or extends) the source in-point by the same amount.
+					const nextSourceStartMs = isMove
+						? sourceStartMs
+						: Math.max(0, Math.round(sourceStartMs + (newStart - clip.startMs) * speed));
+					return {
+						...clip,
+						startMs: newStart,
+						endMs: newEnd,
+						sourceStartMs: nextSourceStartMs,
+					};
+				}),
 			);
 		},
 		[clipRegions],
