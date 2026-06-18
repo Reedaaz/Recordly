@@ -8,6 +8,7 @@ import {
 	Scissors,
 	SpeakerX,
 	VideoCamera,
+	VideoCameraSlash,
 	MagnifyingGlassPlus as ZoomIn,
 } from "@phosphor-icons/react";
 import type { Span } from "dnd-timeline";
@@ -48,7 +49,8 @@ interface ItemProps {
 		| "audio"
 		| "webcam-size"
 		| "webcam-focus"
-		| "webcam-position";
+		| "webcam-position"
+		| "webcam-hide";
 	isLoading?: boolean;
 	loadingLabel?: string;
 }
@@ -144,6 +146,7 @@ export default function Item({
 	const isWebcamSize = variant === "webcam-size";
 	const isWebcamFocus = variant === "webcam-focus";
 	const isWebcamPosition = variant === "webcam-position";
+	const isWebcamHide = variant === "webcam-hide";
 	const showAudioWaveform = isAudio && Boolean(waveformPeaks);
 	const webcamSizeLabel =
 		webcamSizePercent !== undefined
@@ -169,7 +172,9 @@ export default function Item({
 								? glassStyles.glassPink
 								: isWebcamPosition
 									? (glassStyles.glassBlue ?? glassStyles.glassPink)
-									: glassStyles.glassYellow;
+									: isWebcamHide
+										? glassStyles.glassCyan
+										: glassStyles.glassYellow;
 
 	const MIN_ITEM_PX = 6;
 	const handleSelect = () => {
@@ -296,6 +301,13 @@ export default function Item({
 										{webcamFocusPercent !== undefined
 											? `Focus ${Math.round(webcamFocusPercent)}%`
 											: "Focus"}
+									</span>
+								</>
+							) : isWebcamHide ? (
+								<>
+									<VideoCameraSlash className="w-3.5 h-3.5 shrink-0" />
+									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+										{children}
 									</span>
 								</>
 							) : (

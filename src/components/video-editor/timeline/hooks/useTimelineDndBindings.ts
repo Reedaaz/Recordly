@@ -7,6 +7,7 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
 	ZoomRegion,
@@ -31,6 +32,7 @@ interface UseTimelineDndBindingsParams {
 	webcamSizeRegions: WebcamSizeRegion[];
 	webcamFocusRegions: WebcamFocusRegion[];
 	webcamPositionRegions: WebcamPositionRegion[];
+	webcamHideRegions: WebcamHideRegion[];
 	onZoomSpanChange: (id: string, span: Span) => void;
 	onTrimSpanChange?: (id: string, span: Span) => void;
 	onClipSpanChange?: (id: string, span: Span) => void;
@@ -40,6 +42,7 @@ interface UseTimelineDndBindingsParams {
 	onWebcamSizeSpanChange?: (id: string, span: Span) => void;
 	onWebcamFocusSpanChange?: (id: string, span: Span) => void;
 	onWebcamPositionSpanChange?: (id: string, span: Span) => void;
+	onWebcamHideSpanChange?: (id: string, span: Span) => void;
 }
 
 type TimelineItemKind =
@@ -52,6 +55,7 @@ type TimelineItemKind =
 	| "webcam-size"
 	| "webcam-focus"
 	| "webcam-position"
+	| "webcam-hide"
 	| null;
 
 export function useTimelineDndBindings({
@@ -64,6 +68,7 @@ export function useTimelineDndBindings({
 	webcamSizeRegions,
 	webcamFocusRegions,
 	webcamPositionRegions,
+	webcamHideRegions,
 	onZoomSpanChange,
 	onTrimSpanChange,
 	onClipSpanChange,
@@ -73,6 +78,7 @@ export function useTimelineDndBindings({
 	onWebcamSizeSpanChange,
 	onWebcamFocusSpanChange,
 	onWebcamPositionSpanChange,
+	onWebcamHideSpanChange,
 }: UseTimelineDndBindingsParams) {
 	const resolveItemKind = useCallback(
 		(id: string): TimelineItemKind => {
@@ -85,6 +91,7 @@ export function useTimelineDndBindings({
 			if (webcamSizeRegions.some((r) => r.id === id)) return "webcam-size";
 			if (webcamFocusRegions.some((r) => r.id === id)) return "webcam-focus";
 			if (webcamPositionRegions.some((r) => r.id === id)) return "webcam-position";
+			if (webcamHideRegions.some((r) => r.id === id)) return "webcam-hide";
 			return null;
 		},
 		[
@@ -97,6 +104,7 @@ export function useTimelineDndBindings({
 			webcamSizeRegions,
 			webcamFocusRegions,
 			webcamPositionRegions,
+			webcamHideRegions,
 		],
 	);
 
@@ -125,6 +133,7 @@ export function useTimelineDndBindings({
 			if (itemKind === "webcam-size") return false;
 			if (itemKind === "webcam-focus") return false;
 			if (itemKind === "webcam-position") return false;
+			if (itemKind === "webcam-hide") return false;
 
 			const checkOverlap = (
 				regions: (ZoomRegion | TrimRegion | ClipRegion | SpeedRegion | AudioRegion)[],
@@ -169,6 +178,7 @@ export function useTimelineDndBindings({
 				webcamSizeRegions,
 				webcamFocusRegions,
 				webcamPositionRegions,
+				webcamHideRegions,
 			}),
 		[
 			zoomRegions,
@@ -178,6 +188,7 @@ export function useTimelineDndBindings({
 			webcamSizeRegions,
 			webcamFocusRegions,
 			webcamPositionRegions,
+			webcamHideRegions,
 		],
 	);
 
@@ -190,6 +201,7 @@ export function useTimelineDndBindings({
 				webcamSizeRegions,
 				webcamFocusRegions,
 				webcamPositionRegions,
+				webcamHideRegions,
 			}),
 		[
 			zoomRegions,
@@ -198,6 +210,7 @@ export function useTimelineDndBindings({
 			webcamSizeRegions,
 			webcamFocusRegions,
 			webcamPositionRegions,
+			webcamHideRegions,
 		],
 	);
 
@@ -229,6 +242,8 @@ export function useTimelineDndBindings({
 				onWebcamFocusSpanChange?.(id, span);
 			} else if (itemKind === "webcam-position") {
 				onWebcamPositionSpanChange?.(id, span);
+			} else if (itemKind === "webcam-hide") {
+				onWebcamHideSpanChange?.(id, span);
 			}
 		},
 		[
@@ -243,6 +258,7 @@ export function useTimelineDndBindings({
 			onWebcamSizeSpanChange,
 			onWebcamFocusSpanChange,
 			onWebcamPositionSpanChange,
+			onWebcamHideSpanChange,
 		],
 	);
 

@@ -3,6 +3,7 @@ import type {
 	AudioRegion,
 	ClipRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
 	ZoomRegion,
@@ -10,6 +11,7 @@ import type {
 import {
 	CLIP_ROW_ID,
 	WEBCAM_FOCUS_ROW_ID,
+	WEBCAM_HIDE_ROW_ID,
 	WEBCAM_POSITION_ROW_ID,
 	WEBCAM_SIZE_ROW_ID,
 	ZOOM_ROW_ID,
@@ -52,6 +54,7 @@ export function buildTimelineItems(params: {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
+	webcamHideRegions?: WebcamHideRegion[];
 }): TimelineRenderItem[] {
 	const {
 		zoomRegions,
@@ -61,6 +64,7 @@ export function buildTimelineItems(params: {
 		webcamSizeRegions = [],
 		webcamFocusRegions = [],
 		webcamPositionRegions = [],
+		webcamHideRegions = [],
 	} = params;
 	const zooms: TimelineRenderItem[] = zoomRegions.map((region, index) => ({
 		id: region.id,
@@ -140,6 +144,14 @@ export function buildTimelineItems(params: {
 		variant: "webcam-position",
 	}));
 
+	const webcamHides: TimelineRenderItem[] = webcamHideRegions.map((region) => ({
+		id: region.id,
+		rowId: WEBCAM_HIDE_ROW_ID,
+		span: { start: region.startMs, end: region.endMs },
+		label: "Hide",
+		variant: "webcam-hide",
+	}));
+
 	return [
 		...zooms,
 		...clips,
@@ -148,6 +160,7 @@ export function buildTimelineItems(params: {
 		...webcamSizes,
 		...webcamFocuses,
 		...webcamPositions,
+		...webcamHides,
 	];
 }
 
@@ -158,6 +171,7 @@ export function buildAllRegionSpans(params: {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
+	webcamHideRegions?: WebcamHideRegion[];
 }): TimelineRegionSpan[] {
 	const {
 		zoomRegions,
@@ -166,6 +180,7 @@ export function buildAllRegionSpans(params: {
 		webcamSizeRegions = [],
 		webcamFocusRegions = [],
 		webcamPositionRegions = [],
+		webcamHideRegions = [],
 	} = params;
 	const zooms = zoomRegions.map((r) => ({
 		id: r.id,
@@ -203,7 +218,21 @@ export function buildAllRegionSpans(params: {
 		end: r.endMs,
 		rowId: WEBCAM_POSITION_ROW_ID,
 	}));
-	return [...zooms, ...clips, ...audios, ...webcamSizes, ...webcamFocuses, ...webcamPositions];
+	const webcamHides = webcamHideRegions.map((r) => ({
+		id: r.id,
+		start: r.startMs,
+		end: r.endMs,
+		rowId: WEBCAM_HIDE_ROW_ID,
+	}));
+	return [
+		...zooms,
+		...clips,
+		...audios,
+		...webcamSizes,
+		...webcamFocuses,
+		...webcamPositions,
+		...webcamHides,
+	];
 }
 
 export function resolveDropRowId(

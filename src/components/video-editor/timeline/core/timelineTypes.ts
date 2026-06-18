@@ -55,7 +55,8 @@ export interface TimelineRenderItem {
 		| "audio"
 		| "webcam-size"
 		| "webcam-focus"
-		| "webcam-position";
+		| "webcam-position"
+		| "webcam-hide";
 }
 
 export interface AudioPeaksData {

@@ -17,6 +17,7 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
 	ZoomFocus,
@@ -83,6 +84,10 @@ export interface TimelineEditorProps {
 	onWebcamPositionDelete?: (id: string) => void;
 	selectedWebcamPositionRegionId?: string | null;
 	onSelectWebcamPosition?: (id: string | null) => void;
+	webcamHideRegions?: WebcamHideRegion[];
+	onWebcamHideSpanChange?: (id: string, span: Span) => void;
+	selectedWebcamHideRegionId?: string | null;
+	onSelectWebcamHide?: (id: string | null) => void;
 	videoPath?: string | null;
 	videoSourcePath?: string | null;
 	cursorTelemetrySourcePath?: string | null;
@@ -182,6 +187,10 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			onWebcamPositionDelete,
 			selectedWebcamPositionRegionId = null,
 			onSelectWebcamPosition,
+			webcamHideRegions = [],
+			onWebcamHideSpanChange,
+			selectedWebcamHideRegionId = null,
+			onSelectWebcamHide,
 			videoPath,
 			videoSourcePath,
 			cursorTelemetrySourcePath,
@@ -412,6 +421,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			webcamSizeRegions,
 			webcamFocusRegions,
 			webcamPositionRegions,
+			webcamHideRegions,
 			onWebcamSizeSpanChange,
 			onWebcamSizeDelete,
 			selectedWebcamSizeRegionId,
@@ -424,6 +434,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			onWebcamPositionDelete,
 			selectedWebcamPositionRegionId,
 			onSelectWebcamPosition,
+			onWebcamHideSpanChange,
 			isMac,
 			keyShortcuts,
 			isTimelineFocusedRef,
@@ -519,6 +530,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 							onSelectWebcamSize={handleSelectWebcamSize}
 							onSelectWebcamFocus={handleSelectWebcamFocus}
 							onSelectWebcamPosition={handleSelectWebcamPosition}
+							onSelectWebcamHide={onSelectWebcamHide}
 							selectedZoomId={selectedZoomId}
 							selectedClipId={selectedClipId}
 							selectedAnnotationId={selectedAnnotationId}
@@ -526,6 +538,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 							selectedWebcamSizeRegionId={selectedWebcamSizeRegionId}
 							selectedWebcamFocusRegionId={selectedWebcamFocusRegionId}
 							selectedWebcamPositionRegionId={selectedWebcamPositionRegionId}
+							selectedWebcamHideRegionId={selectedWebcamHideRegionId}
 							selectAllBlocksActive={selectAllBlocksActive}
 							onClearBlockSelection={clearSelectedBlocks}
 							keyframes={keyframes}

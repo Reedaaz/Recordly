@@ -3868,6 +3868,20 @@ export default function VideoEditor() {
 		setSelectedWebcamHideRegionId((selectedId) => (selectedId === id ? null : selectedId));
 	}, []);
 
+	const handleWebcamHideRegionSpanChange = useCallback((id: string, span: Span) => {
+		setWebcamHideRegions((current) =>
+			current.map((region) =>
+				region.id === id
+					? {
+							...region,
+							startMs: Math.max(0, Math.round(span.start)),
+							endMs: Math.max(0, Math.round(span.end)),
+						}
+					: region,
+			),
+		);
+	}, []);
+
 	const handleWebcamHideRegionEdgeChange = useCallback(
 		(id: string, field: "exitEdge" | "enterEdge", edge: WebcamHideEdge) => {
 			setWebcamHideRegions((current) =>
@@ -7411,6 +7425,10 @@ export default function VideoEditor() {
 						onWebcamPositionDelete={handleWebcamPositionRegionDelete}
 						selectedWebcamPositionRegionId={selectedWebcamPositionRegionId}
 						onSelectWebcamPosition={handleSelectWebcamPositionRegion}
+						webcamHideRegions={webcamHideRegions}
+						onWebcamHideSpanChange={handleWebcamHideRegionSpanChange}
+						selectedWebcamHideRegionId={selectedWebcamHideRegionId}
+						onSelectWebcamHide={handleSelectWebcamHideRegion}
 						showSourceAudioTrack={clipRegions.some((c) => c.showSourceAudio)}
 						sourceAudioTrackSettings={audio.activeSourceAudioTrackSettings}
 						getSourceAudioTrackSettingsForClip={

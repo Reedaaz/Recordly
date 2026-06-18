@@ -9,6 +9,7 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
 	ZoomFocus,
@@ -65,6 +66,7 @@ interface UseTimelineEditorRuntimeParams {
 	webcamSizeRegions: WebcamSizeRegion[];
 	webcamFocusRegions: WebcamFocusRegion[];
 	webcamPositionRegions: WebcamPositionRegion[];
+	webcamHideRegions: WebcamHideRegion[];
 	onWebcamSizeSpanChange?: (id: string, span: Span) => void;
 	onWebcamSizeDelete?: (id: string) => void;
 	selectedWebcamSizeRegionId?: string | null;
@@ -77,6 +79,7 @@ interface UseTimelineEditorRuntimeParams {
 	onWebcamPositionDelete?: (id: string) => void;
 	selectedWebcamPositionRegionId?: string | null;
 	onSelectWebcamPosition?: (id: string | null) => void;
+	onWebcamHideSpanChange?: (id: string, span: Span) => void;
 	isMac: boolean;
 	keyShortcuts: TimelineShortcutBindings;
 	isTimelineFocusedRef: RefObject<boolean>;
@@ -124,6 +127,7 @@ export function useTimelineEditorRuntime({
 	webcamSizeRegions,
 	webcamFocusRegions,
 	webcamPositionRegions,
+	webcamHideRegions,
 	onWebcamSizeSpanChange,
 	onWebcamSizeDelete,
 	selectedWebcamSizeRegionId,
@@ -133,6 +137,7 @@ export function useTimelineEditorRuntime({
 	selectedWebcamFocusRegionId,
 	onSelectWebcamFocus,
 	onWebcamPositionSpanChange,
+	onWebcamHideSpanChange,
 	onWebcamPositionDelete,
 	selectedWebcamPositionRegionId,
 	onSelectWebcamPosition,
@@ -235,6 +240,7 @@ export function useTimelineEditorRuntime({
 		webcamSizeRegions,
 		webcamFocusRegions,
 		webcamPositionRegions,
+		webcamHideRegions,
 		onZoomSpanChange,
 		onTrimSpanChange,
 		onClipSpanChange,
@@ -244,6 +250,7 @@ export function useTimelineEditorRuntime({
 		onWebcamSizeSpanChange,
 		onWebcamFocusSpanChange,
 		onWebcamPositionSpanChange,
+		onWebcamHideSpanChange,
 	});
 
 	const {

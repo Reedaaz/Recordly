@@ -19,6 +19,7 @@ import {
 	CLIP_ROW_ID,
 	SOURCE_AUDIO_ROW_ID,
 	WEBCAM_FOCUS_ROW_ID,
+	WEBCAM_HIDE_ROW_ID,
 	WEBCAM_POSITION_ROW_ID,
 	WEBCAM_SIZE_ROW_ID,
 	ZOOM_ROW_ID,
@@ -57,6 +58,7 @@ interface TimelineCanvasProps {
 	onSelectWebcamSize?: (id: string | null) => void;
 	onSelectWebcamFocus?: (id: string | null) => void;
 	onSelectWebcamPosition?: (id: string | null) => void;
+	onSelectWebcamHide?: (id: string | null) => void;
 	onAddZoomAtMs?: (startMs: number) => void;
 	selectedZoomId: string | null;
 	selectedClipId?: string | null;
@@ -65,6 +67,7 @@ interface TimelineCanvasProps {
 	selectedWebcamSizeRegionId?: string | null;
 	selectedWebcamFocusRegionId?: string | null;
 	selectedWebcamPositionRegionId?: string | null;
+	selectedWebcamHideRegionId?: string | null;
 	selectAllBlocksActive?: boolean;
 	onClearBlockSelection?: () => void;
 	keyframes?: { id: string; time: number }[];
@@ -241,6 +244,7 @@ interface TimelineCanvasRowsProps {
 	selectedWebcamSizeRegionId?: string | null;
 	selectedWebcamFocusRegionId?: string | null;
 	selectedWebcamPositionRegionId?: string | null;
+	selectedWebcamHideRegionId?: string | null;
 	onSelectZoom?: (id: string | null) => void;
 	onSelectClip?: (id: string | null) => void;
 	onSelectAnnotation?: (id: string | null) => void;
@@ -248,6 +252,7 @@ interface TimelineCanvasRowsProps {
 	onSelectWebcamSize?: (id: string | null) => void;
 	onSelectWebcamFocus?: (id: string | null) => void;
 	onSelectWebcamPosition?: (id: string | null) => void;
+	onSelectWebcamHide?: (id: string | null) => void;
 	sourceAudioTracks?: SourceAudioTrackWithPeaks[];
 	getSourceAudioTrackSettingsForClip?: (clipId: string | null) => SourceAudioTrackSettings;
 	showSourceAudioTrack?: boolean;
@@ -315,6 +320,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 	selectedWebcamSizeRegionId,
 	selectedWebcamFocusRegionId,
 	selectedWebcamPositionRegionId,
+	selectedWebcamHideRegionId,
 	onSelectZoom,
 	onSelectClip,
 	onSelectAnnotation,
@@ -322,6 +328,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 	onSelectWebcamSize,
 	onSelectWebcamFocus,
 	onSelectWebcamPosition,
+	onSelectWebcamHide,
 	sourceAudioTracks = [],
 	getSourceAudioTrackSettingsForClip,
 	showSourceAudioTrack = false,
@@ -348,12 +355,14 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 		webcamSizeItems,
 		webcamFocusItems,
 		webcamPositionItems,
+		webcamHideItems,
 	} = useMemo(() => {
 		const nextClipItems: TimelineRenderItem[] = [];
 		const nextZoomItems: TimelineRenderItem[] = [];
 		const nextWebcamSizeItems: TimelineRenderItem[] = [];
 		const nextWebcamFocusItems: TimelineRenderItem[] = [];
 		const nextWebcamPositionItems: TimelineRenderItem[] = [];
+		const nextWebcamHideItems: TimelineRenderItem[] = [];
 		const annotationBuckets = new Map<number, TimelineRenderItem[]>();
 		const audioBuckets = new Map<number, TimelineRenderItem[]>();
 
@@ -376,6 +385,10 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 			}
 			if (item.rowId === WEBCAM_POSITION_ROW_ID) {
 				nextWebcamPositionItems.push(item);
+				continue;
+			}
+			if (item.rowId === WEBCAM_HIDE_ROW_ID) {
+				nextWebcamHideItems.push(item);
 				continue;
 			}
 			if (isAnnotationTrackRowId(item.rowId)) {
@@ -414,6 +427,7 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 			webcamSizeItems: nextWebcamSizeItems,
 			webcamFocusItems: nextWebcamFocusItems,
 			webcamPositionItems: nextWebcamPositionItems,
+			webcamHideItems: nextWebcamHideItems,
 		};
 	}, [items]);
 
@@ -638,6 +652,27 @@ const TimelineCanvasRows = memo(function TimelineCanvasRows({
 					</Item>
 				))}
 			</Row>
+			<Row
+				id={WEBCAM_HIDE_ROW_ID}
+				isEmpty={webcamHideItems.length === 0}
+				baseline={webcamHideItems.length > 0}
+			>
+				{webcamHideItems.map((item) => (
+					<Item
+						id={item.id}
+						key={item.id}
+						rowId={item.rowId}
+						span={item.span}
+						isSelected={
+							selectAllBlocksActive || item.id === selectedWebcamHideRegionId
+						}
+						onSelectId={onSelectWebcamHide}
+						variant="webcam-hide"
+					>
+						{item.label}
+					</Item>
+				))}
+			</Row>
 		</>
 	);
 });
@@ -656,6 +691,7 @@ export default function TimelineCanvas({
 	onSelectWebcamSize,
 	onSelectWebcamFocus,
 	onSelectWebcamPosition,
+	onSelectWebcamHide,
 	selectedZoomId,
 	selectedClipId,
 	selectedAnnotationId,
@@ -663,6 +699,7 @@ export default function TimelineCanvas({
 	selectedWebcamSizeRegionId,
 	selectedWebcamFocusRegionId,
 	selectedWebcamPositionRegionId,
+	selectedWebcamHideRegionId,
 	selectAllBlocksActive = false,
 	onClearBlockSelection,
 	keyframes = [],
@@ -901,6 +938,7 @@ export default function TimelineCanvas({
 					selectedWebcamSizeRegionId={selectedWebcamSizeRegionId}
 					selectedWebcamFocusRegionId={selectedWebcamFocusRegionId}
 					selectedWebcamPositionRegionId={selectedWebcamPositionRegionId}
+					selectedWebcamHideRegionId={selectedWebcamHideRegionId}
 					onSelectZoom={onSelectZoom}
 					onSelectClip={onSelectClip}
 					onSelectAnnotation={onSelectAnnotation}
@@ -908,6 +946,7 @@ export default function TimelineCanvas({
 					onSelectWebcamSize={onSelectWebcamSize}
 					onSelectWebcamFocus={onSelectWebcamFocus}
 					onSelectWebcamPosition={onSelectWebcamPosition}
+					onSelectWebcamHide={onSelectWebcamHide}
 					sourceAudioTracks={sourceAudioTracks}
 					getSourceAudioTrackSettingsForClip={getSourceAudioTrackSettingsForClip}
 					showSourceAudioTrack={showSourceAudioTrack}
