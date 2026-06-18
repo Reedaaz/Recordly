@@ -69,6 +69,7 @@ import {
 	type TrimRegion,
 	type WebcamFocusRegion,
 	type WebcamOverlaySettings,
+	type WebcamHideRegion,
 	type WebcamPositionRegion,
 	type WebcamSizeRegion,
 	type ZoomMotionBlurTuning,
@@ -77,6 +78,7 @@ import {
 } from "./types";
 import { normalizeWebcamFocusRegions } from "./webcamFocusRegions";
 import { normalizeWebcamCropRegion } from "./webcamOverlay";
+import { normalizeWebcamHideRegions } from "./webcamHideRegions";
 import { normalizeWebcamPositionRegions } from "./webcamPositionRegions";
 import { normalizeWebcamSizeRegions } from "./webcamSizeRegions";
 
@@ -138,6 +140,7 @@ export interface ProjectEditorState {
 	webcamSizeRegions: WebcamSizeRegion[];
 	webcamFocusRegions: WebcamFocusRegion[];
 	webcamPositionRegions: WebcamPositionRegion[];
+	webcamHideRegions: WebcamHideRegion[];
 	aspectRatio: AspectRatio;
 	sourceAudioTrackSettingsByClip?: Record<string, SourceAudioTrackSettings>;
 	defaultSourceAudioTrackSettings?: SourceAudioTrackSettings;
@@ -669,6 +672,9 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 	const normalizedWebcamPositionRegions: WebcamPositionRegion[] = normalizeWebcamPositionRegions(
 		(editor as Partial<ProjectEditorState>).webcamPositionRegions,
 	);
+	const normalizedWebcamHideRegions: WebcamHideRegion[] = normalizeWebcamHideRegions(
+		(editor as Partial<ProjectEditorState>).webcamHideRegions,
+	);
 
 	const normalizedAudioRegions: AudioRegion[] = Array.isArray(
 		(editor as Partial<ProjectEditorState>).audioRegions,
@@ -1036,6 +1042,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		webcamSizeRegions: normalizedWebcamSizeRegions,
 		webcamFocusRegions: normalizedWebcamFocusRegions,
 		webcamPositionRegions: normalizedWebcamPositionRegions,
+		webcamHideRegions: normalizedWebcamHideRegions,
 		sourceAudioTrackSettingsByClip:
 			editor.sourceAudioTrackSettingsByClip &&
 			typeof editor.sourceAudioTrackSettingsByClip === "object"

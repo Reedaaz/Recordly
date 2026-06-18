@@ -12,6 +12,7 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamOverlaySettings,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
@@ -77,6 +78,7 @@ interface VideoExporterConfig extends ExportConfig {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
+	webcamHideRegions?: WebcamHideRegion[];
 	annotationRegions?: AnnotationRegion[];
 	autoCaptions?: CaptionCue[];
 	autoCaptionSettings?: AutoCaptionSettings;
@@ -250,6 +252,7 @@ export class VideoExporter {
 				webcamSizeRegions: this.config.webcamSizeRegions,
 				webcamFocusRegions: this.config.webcamFocusRegions,
 				webcamPositionRegions: this.config.webcamPositionRegions,
+				webcamHideRegions: this.config.webcamHideRegions,
 				videoWidth: videoInfo.width,
 				videoHeight: videoInfo.height,
 				annotationRegions: this.config.annotationRegions,

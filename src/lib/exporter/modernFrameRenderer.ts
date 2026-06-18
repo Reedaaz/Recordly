@@ -21,6 +21,7 @@ import type {
 	Padding,
 	SpeedRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamOverlaySettings,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
@@ -68,10 +69,12 @@ import {
 	getWebcamAvoidCursorPosition,
 	getWebcamCropDrawLayout,
 	getWebcamCropSourceRect,
+	getWebcamHideTransform,
 	getWebcamOverlayPosition,
 	getWebcamOverlaySizePx,
 	isWebcamCropRegionDefault,
 } from "@/components/video-editor/webcamOverlay";
+import { getWebcamHideStateAtTime } from "@/components/video-editor/webcamHideRegions";
 import { getInterpolatedWebcamPositionAtTime } from "@/components/video-editor/webcamPositionRegions";
 import { getInterpolatedWebcamDimensionsAtTime } from "@/components/video-editor/webcamSizeRegions";
 import { getAssetPath, getExportableVideoUrl, getRenderableAssetUrl } from "@/lib/assetPath";
@@ -142,6 +145,7 @@ interface FrameRenderConfig {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
+	webcamHideRegions?: WebcamHideRegion[];
 	videoWidth: number;
 	videoHeight: number;
 	annotationRegions?: AnnotationRegion[];
@@ -228,6 +232,9 @@ interface WebcamLayoutCache {
 	radius: number;
 	shadowStrength: number;
 	mirror: boolean;
+	hideOffsetX: number;
+	hideOffsetY: number;
+	hideOpacity: number;
 }
 
 interface AnnotationSpriteEntry {
@@ -2637,7 +2644,10 @@ export class FrameRenderer {
 			areNearlyEqual(previousLayout.positionX, nextLayout.positionX) &&
 			areNearlyEqual(previousLayout.positionY, nextLayout.positionY) &&
 			areNearlyEqual(previousLayout.radius, nextLayout.radius) &&
-			areNearlyEqual(previousLayout.shadowStrength, nextLayout.shadowStrength)
+			areNearlyEqual(previousLayout.shadowStrength, nextLayout.shadowStrength) &&
+			areNearlyEqual(previousLayout.hideOffsetX, nextLayout.hideOffsetX) &&
+			areNearlyEqual(previousLayout.hideOffsetY, nextLayout.hideOffsetY) &&
+			areNearlyEqual(previousLayout.hideOpacity, nextLayout.hideOpacity)
 		);
 	}
 
@@ -2646,7 +2656,11 @@ export class FrameRenderer {
 			return;
 		}
 
-		this.webcamRootContainer.position.set(nextLayout.positionX, nextLayout.positionY);
+		this.webcamRootContainer.position.set(
+			nextLayout.positionX + nextLayout.hideOffsetX,
+			nextLayout.positionY + nextLayout.hideOffsetY,
+		);
+		this.webcamRootContainer.alpha = nextLayout.hideOpacity;
 
 		applyWebcamRevealLayoutToSprite(
 			this.webcamSprite,
@@ -3082,6 +3096,22 @@ export class FrameRenderer {
 
 		this.webcamRootContainer.visible = true;
 
+		const hideState = getWebcamHideStateAtTime(
+			this.config.webcamHideRegions,
+			this.currentTimelineTimeMs,
+		);
+		const hideTransform = getWebcamHideTransform({
+			amount: hideState.amount,
+			edge: hideState.edge,
+			style: hideState.style,
+			x: position.x,
+			y: position.y,
+			width: size,
+			height: webcamHeight,
+			containerWidth: this.config.width,
+			containerHeight: this.config.height,
+		});
+
 		const nextLayout: WebcamLayoutCache = {
 			sourceWidth: renderableWebcamSource.width,
 			sourceHeight: renderableWebcamSource.height,
@@ -3092,6 +3122,9 @@ export class FrameRenderer {
 			radius,
 			shadowStrength,
 			mirror: webcam.mirror,
+			hideOffsetX: hideTransform.offsetX,
+			hideOffsetY: hideTransform.offsetY,
+			hideOpacity: hideTransform.opacity,
 		};
 
 		if (!this.hasMatchingWebcamLayout(nextLayout)) {

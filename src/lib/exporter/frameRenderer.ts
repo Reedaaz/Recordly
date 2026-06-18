@@ -11,6 +11,7 @@ import type {
 	Padding,
 	SpeedRegion,
 	WebcamFocusRegion,
+	WebcamHideRegion,
 	WebcamOverlaySettings,
 	WebcamPositionRegion,
 	WebcamSizeRegion,
@@ -62,8 +63,10 @@ import {
 	getWebcamAvoidCursorPosition,
 	getWebcamCropDrawLayout,
 	getWebcamOverlayPosition,
+	getWebcamHideTransform,
 	getWebcamOverlaySizePx,
 } from "@/components/video-editor/webcamOverlay";
+import { getWebcamHideStateAtTime } from "@/components/video-editor/webcamHideRegions";
 import { getInterpolatedWebcamPositionAtTime } from "@/components/video-editor/webcamPositionRegions";
 import { getInterpolatedWebcamDimensionsAtTime } from "@/components/video-editor/webcamSizeRegions";
 import { getAssetPath, getExportableVideoUrl, getRenderableAssetUrl } from "@/lib/assetPath";
@@ -123,6 +126,7 @@ interface FrameRenderConfig {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
+	webcamHideRegions?: WebcamHideRegion[];
 	videoWidth: number;
 	videoHeight: number;
 	annotationRegions?: AnnotationRegion[];
@@ -2587,6 +2591,24 @@ export class FrameRenderer {
 			x = clampedAvoidedPosition.x;
 			y = clampedAvoidedPosition.y;
 		}
+		const hideState = getWebcamHideStateAtTime(
+			this.config.webcamHideRegions,
+			this.currentTimelineTimeMs,
+		);
+		const hideTransform = getWebcamHideTransform({
+			amount: hideState.amount,
+			edge: hideState.edge,
+			style: hideState.style,
+			x,
+			y,
+			width: bubbleWidth,
+			height: bubbleHeight,
+			containerWidth: width,
+			containerHeight: height,
+		});
+		x += hideTransform.offsetX;
+		y += hideTransform.offsetY;
+		const hideOpacity = hideTransform.opacity;
 		const radius = Math.max(0, webcam.cornerRadius ?? 18);
 
 		const bubbleCanvas = this.webcamBubbleCanvas ?? document.createElement("canvas");
@@ -2727,13 +2749,17 @@ export class FrameRenderer {
 			const shadow = Math.max(0, Math.min(1, webcam.shadow));
 			const shadowBasis = Math.max(bubbleWidth, bubbleHeight);
 			ctx.save();
+			ctx.globalAlpha = hideOpacity;
 			ctx.filter = `drop-shadow(0 ${Math.round(shadowBasis * 0.06)}px ${Math.round(shadowBasis * 0.22)}px rgba(0,0,0,${shadow}))`;
 			ctx.drawImage(bubbleCanvas, x, y, bubbleWidth, bubbleHeight);
 			ctx.restore();
 			return;
 		}
 
+		ctx.save();
+		ctx.globalAlpha = hideOpacity;
 		ctx.drawImage(bubbleCanvas, x, y, bubbleWidth, bubbleHeight);
+		ctx.restore();
 	}
 
 	private closeWebcamDecodedFrame(): void {

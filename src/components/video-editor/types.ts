@@ -132,6 +132,24 @@ export interface WebcamPositionRegion {
 	transitionOutMs?: number;
 }
 
+export type WebcamHideEdge = "bottom" | "top" | "left" | "right";
+
+export type WebcamHideStyle = "slide" | "fade" | "slide-fade" | "instant";
+
+export interface WebcamHideRegion {
+	id: string;
+	startMs: number;
+	endMs: number;
+	exitEdge: WebcamHideEdge;
+	exitStyle: WebcamHideStyle;
+	enterEdge: WebcamHideEdge;
+	enterStyle: WebcamHideStyle;
+	/** Duration of the exit (camera leaving) animation in ms. */
+	transitionInMs?: number;
+	/** Duration of the enter (camera returning) animation in ms. */
+	transitionOutMs?: number;
+}
+
 export const DEFAULT_CURSOR_SIZE = 3.0;
 export const DEFAULT_CURSOR_SMOOTHING = 0.67;
 export const DEFAULT_CURSOR_MOTION_BLUR = 0.4;
@@ -186,6 +204,12 @@ export const DEFAULT_WEBCAM_POSITION_X = 1;
 export const DEFAULT_WEBCAM_POSITION_Y = 1;
 export const DEFAULT_WEBCAM_POSITION_TRANSITION_IN_MS = 400;
 export const DEFAULT_WEBCAM_POSITION_TRANSITION_OUT_MS = 400;
+export const DEFAULT_WEBCAM_HIDE_EXIT_EDGE: WebcamHideEdge = "bottom";
+export const DEFAULT_WEBCAM_HIDE_EXIT_STYLE: WebcamHideStyle = "slide-fade";
+export const DEFAULT_WEBCAM_HIDE_ENTER_EDGE: WebcamHideEdge = "bottom";
+export const DEFAULT_WEBCAM_HIDE_ENTER_STYLE: WebcamHideStyle = "slide-fade";
+export const DEFAULT_WEBCAM_HIDE_TRANSITION_IN_MS = 400;
+export const DEFAULT_WEBCAM_HIDE_TRANSITION_OUT_MS = 400;
 export const DEFAULT_WEBCAM_TIME_OFFSET_MS = 0;
 
 export const DEFAULT_WEBCAM_OVERLAY: WebcamOverlaySettings = {

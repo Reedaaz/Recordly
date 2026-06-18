@@ -174,6 +174,10 @@ import {
 	DEFAULT_WEBCAM_FOCUS_SCREEN_MODE,
 	DEFAULT_WEBCAM_FOCUS_SCREEN_PIP_SIZE,
 	DEFAULT_WEBCAM_FOCUS_SIZE,
+	DEFAULT_WEBCAM_HIDE_ENTER_EDGE,
+	DEFAULT_WEBCAM_HIDE_ENTER_STYLE,
+	DEFAULT_WEBCAM_HIDE_EXIT_EDGE,
+	DEFAULT_WEBCAM_HIDE_EXIT_STYLE,
 	DEFAULT_WEBCAM_OVERLAY,
 	DEFAULT_WEBCAM_TIME_OFFSET_MS,
 	DEFAULT_ZOOM_IN_DURATION_MS,
@@ -194,6 +198,9 @@ import {
 	type TrimRegion,
 	trimsToClips,
 	type WebcamFocusRegion,
+	type WebcamHideEdge,
+	type WebcamHideRegion,
+	type WebcamHideStyle,
 	type WebcamOverlaySettings,
 	type WebcamPositionRegion,
 	type WebcamSizeRegion,
@@ -218,6 +225,12 @@ import {
 	normalizeWebcamFocusRegions,
 	WEBCAM_FOCUS_REGION_MIN_DURATION_MS,
 } from "./webcamFocusRegions";
+import {
+	clampWebcamHideRegionTransitionMs,
+	getNextWebcamHideRegionId,
+	normalizeWebcamHideRegions,
+	WEBCAM_HIDE_REGION_MIN_DURATION_MS,
+} from "./webcamHideRegions";
 import {
 	clampWebcamPositionCoordinate,
 	clampWebcamPositionRegionTransitionMs,
@@ -245,6 +258,7 @@ type EditorHistorySnapshot = {
 	webcamSizeRegions: WebcamSizeRegion[];
 	webcamFocusRegions: WebcamFocusRegion[];
 	webcamPositionRegions: WebcamPositionRegion[];
+	webcamHideRegions: WebcamHideRegion[];
 	selectedZoomId: string | null;
 	selectedClipId: string | null;
 	selectedAnnotationId: string | null;
@@ -252,6 +266,7 @@ type EditorHistorySnapshot = {
 	selectedWebcamSizeRegionId: string | null;
 	selectedWebcamFocusRegionId: string | null;
 	selectedWebcamPositionRegionId: string | null;
+	selectedWebcamHideRegionId: string | null;
 };
 
 type PendingExportSave = {
@@ -718,6 +733,10 @@ export default function VideoEditor() {
 	const [selectedWebcamPositionRegionId, setSelectedWebcamPositionRegionId] = useState<
 		string | null
 	>(null);
+	const [webcamHideRegions, setWebcamHideRegions] = useState<WebcamHideRegion[]>([]);
+	const [selectedWebcamHideRegionId, setSelectedWebcamHideRegionId] = useState<string | null>(
+		null,
+	);
 	// Master gate for the "drag camera in preview -> timeline position
 	// region" feature. On by default. Turning it off hides the timeline
 	// row, makes the preview drag inert, and creates nothing. To fully
@@ -1329,6 +1348,7 @@ export default function VideoEditor() {
 					webcamSizeRegions,
 					webcamFocusRegions,
 					webcamPositionRegions,
+					webcamHideRegions,
 					videoWidth: previewVideo.videoWidth,
 					videoHeight: previewVideo.videoHeight,
 					annotationRegions,
@@ -1857,6 +1877,7 @@ export default function VideoEditor() {
 				webcamSizeRegions: WebcamSizeRegion[];
 				webcamFocusRegions: WebcamFocusRegion[];
 				webcamPositionRegions: WebcamPositionRegion[];
+				webcamHideRegions: WebcamHideRegion[];
 				zoomRegions: ZoomRegion[];
 				trimRegions: TrimRegion[];
 				clipRegions: ClipRegion[];
@@ -1963,6 +1984,7 @@ export default function VideoEditor() {
 				webcamSizeRegions,
 				webcamFocusRegions,
 				webcamPositionRegions,
+				webcamHideRegions,
 				zoomRegions,
 				trimRegions,
 				clipRegions,
@@ -2062,6 +2084,7 @@ export default function VideoEditor() {
 			webcamSizeRegions,
 			webcamFocusRegions,
 			webcamPositionRegions,
+			webcamHideRegions,
 			selectedZoomId,
 			selectedClipId,
 			selectedAnnotationId,
@@ -2069,6 +2092,7 @@ export default function VideoEditor() {
 			selectedWebcamSizeRegionId,
 			selectedWebcamFocusRegionId,
 			selectedWebcamPositionRegionId,
+			selectedWebcamHideRegionId,
 		};
 	}, [
 		zoomRegions,
@@ -2102,6 +2126,7 @@ export default function VideoEditor() {
 			setWebcamSizeRegions(cloned.webcamSizeRegions ?? []);
 			setWebcamFocusRegions(cloned.webcamFocusRegions ?? []);
 			setWebcamPositionRegions(cloned.webcamPositionRegions ?? []);
+			setWebcamHideRegions(cloned.webcamHideRegions ?? []);
 			setSelectedZoomId(cloned.selectedZoomId);
 			setSelectedClipId(cloned.selectedClipId);
 			setSelectedAnnotationId(cloned.selectedAnnotationId);
@@ -2109,6 +2134,7 @@ export default function VideoEditor() {
 			setSelectedWebcamSizeRegionId(cloned.selectedWebcamSizeRegionId ?? null);
 			setSelectedWebcamFocusRegionId(cloned.selectedWebcamFocusRegionId ?? null);
 			setSelectedWebcamPositionRegionId(cloned.selectedWebcamPositionRegionId ?? null);
+			setSelectedWebcamHideRegionId(cloned.selectedWebcamHideRegionId ?? null);
 
 			nextZoomIdRef.current = deriveNextId(
 				"zoom",
@@ -2256,6 +2282,7 @@ export default function VideoEditor() {
 			setWebcamSizeRegions(normalizedEditor.webcamSizeRegions ?? []);
 			setWebcamFocusRegions(normalizedEditor.webcamFocusRegions ?? []);
 			setWebcamPositionRegions(normalizedEditor.webcamPositionRegions ?? []);
+			setWebcamHideRegions(normalizedEditor.webcamHideRegions ?? []);
 			setSourceAudioTrackSettingsByClip(
 				normalizedEditor.sourceAudioTrackSettingsByClip ?? {},
 			);
@@ -3798,6 +3825,81 @@ export default function VideoEditor() {
 		);
 	}, []);
 
+	const handleAddWebcamHideRegionAtPlayhead = useCallback(() => {
+		const playheadMs = Math.max(
+			0,
+			Math.min(timelineDurationMs, Math.round((timelinePlayheadTime ?? currentTime) * 1000)),
+		);
+		const minDurationMs = WEBCAM_HIDE_REGION_MIN_DURATION_MS;
+		const desiredDurationMs = 2000;
+		let startMs = playheadMs;
+		let endMs = Math.min(timelineDurationMs, playheadMs + desiredDurationMs);
+		if (endMs - startMs < minDurationMs) {
+			startMs = Math.max(0, timelineDurationMs - desiredDurationMs);
+			endMs = timelineDurationMs;
+		}
+		if (endMs - startMs < minDurationMs) {
+			return null;
+		}
+		let createdId: string | null = null;
+		setWebcamHideRegions((current) => {
+			const nextRegion: WebcamHideRegion = {
+				id: getNextWebcamHideRegionId(current),
+				startMs,
+				endMs,
+				exitEdge: DEFAULT_WEBCAM_HIDE_EXIT_EDGE,
+				exitStyle: DEFAULT_WEBCAM_HIDE_EXIT_STYLE,
+				enterEdge: DEFAULT_WEBCAM_HIDE_ENTER_EDGE,
+				enterStyle: DEFAULT_WEBCAM_HIDE_ENTER_STYLE,
+			};
+			createdId = nextRegion.id;
+			setSelectedWebcamHideRegionId(nextRegion.id);
+			return normalizeWebcamHideRegions([...current, nextRegion], timelineDurationMs);
+		});
+		return createdId;
+	}, [currentTime, timelineDurationMs, timelinePlayheadTime]);
+
+	const handleSelectWebcamHideRegion = useCallback((id: string | null) => {
+		setSelectedWebcamHideRegionId(id);
+	}, []);
+
+	const handleWebcamHideRegionDelete = useCallback((id: string) => {
+		setWebcamHideRegions((current) => current.filter((region) => region.id !== id));
+		setSelectedWebcamHideRegionId((selectedId) => (selectedId === id ? null : selectedId));
+	}, []);
+
+	const handleWebcamHideRegionEdgeChange = useCallback(
+		(id: string, field: "exitEdge" | "enterEdge", edge: WebcamHideEdge) => {
+			setWebcamHideRegions((current) =>
+				current.map((region) => (region.id === id ? { ...region, [field]: edge } : region)),
+			);
+		},
+		[],
+	);
+
+	const handleWebcamHideRegionStyleChange = useCallback(
+		(id: string, field: "exitStyle" | "enterStyle", style: WebcamHideStyle) => {
+			setWebcamHideRegions((current) =>
+				current.map((region) => (region.id === id ? { ...region, [field]: style } : region)),
+			);
+		},
+		[],
+	);
+
+	const handleWebcamHideRegionTransitionChange = useCallback(
+		(id: string, field: "transitionInMs" | "transitionOutMs", durationMs: number) => {
+			const clamped = clampWebcamHideRegionTransitionMs(durationMs);
+			setWebcamHideRegions((current) =>
+				current.map((region) =>
+					region.id === id && clamped !== undefined
+						? { ...region, [field]: clamped }
+						: region,
+				),
+			);
+		},
+		[],
+	);
+
 	const handleAddWebcamPositionRegionAtPlayhead = useCallback(
 		(positionX?: number, positionY?: number) => {
 			const playheadMs = Math.max(
@@ -4036,6 +4138,33 @@ export default function VideoEditor() {
 			setSelectedWebcamFocusRegionId(null);
 		}
 	}, [selectedWebcamFocusRegionId, webcamFocusRegions]);
+
+	useEffect(() => {
+		if (
+			selectedWebcamHideRegionId &&
+			!webcamHideRegions.some((region) => region.id === selectedWebcamHideRegionId)
+		) {
+			setSelectedWebcamHideRegionId(null);
+		}
+	}, [selectedWebcamHideRegionId, webcamHideRegions]);
+
+	useEffect(() => {
+		setWebcamHideRegions((current) => {
+			const normalized = normalizeWebcamHideRegions(current, timelineDurationMs);
+			const unchanged =
+				normalized.length === current.length &&
+				normalized.every((region, index) => {
+					const previous = current[index];
+					return (
+						previous &&
+						previous.id === region.id &&
+						previous.startMs === region.startMs &&
+						previous.endMs === region.endMs
+					);
+				});
+			return unchanged ? current : normalized;
+		});
+	}, [timelineDurationMs]);
 
 	useEffect(() => {
 		if (
@@ -4978,6 +5107,7 @@ export default function VideoEditor() {
 						webcamSizeRegions,
 						webcamFocusRegions,
 						webcamPositionRegions,
+						webcamHideRegions,
 						annotationRegions,
 						autoCaptions,
 						autoCaptionSettings,
@@ -5153,6 +5283,7 @@ export default function VideoEditor() {
 						webcamSizeRegions,
 						webcamFocusRegions,
 						webcamPositionRegions,
+						webcamHideRegions,
 						annotationRegions,
 						autoCaptions,
 						autoCaptionSettings,
@@ -6686,6 +6817,14 @@ export default function VideoEditor() {
 									handleWebcamPositionRegionTransitionChange
 								}
 								onWebcamPositionRegionDelete={handleWebcamPositionRegionDelete}
+								webcamHideRegions={webcamHideRegions}
+								selectedWebcamHideRegionId={selectedWebcamHideRegionId}
+								onAddWebcamHideRegionAtPlayhead={handleAddWebcamHideRegionAtPlayhead}
+								onSelectWebcamHideRegion={handleSelectWebcamHideRegion}
+								onWebcamHideRegionEdgeChange={handleWebcamHideRegionEdgeChange}
+								onWebcamHideRegionStyleChange={handleWebcamHideRegionStyleChange}
+								onWebcamHideRegionTransitionChange={handleWebcamHideRegionTransitionChange}
+								onWebcamHideRegionDelete={handleWebcamHideRegionDelete}
 								padding={padding}
 								onPaddingChange={setPadding}
 								frame={frame}
@@ -6853,6 +6992,7 @@ export default function VideoEditor() {
 														: null
 												}
 												webcamSizeRegions={webcamSizeRegions}
+												webcamHideRegions={webcamHideRegions}
 												webcamFocusRegions={webcamFocusRegions}
 												selectedWebcamFocusRegionId={
 													selectedWebcamFocusRegionId

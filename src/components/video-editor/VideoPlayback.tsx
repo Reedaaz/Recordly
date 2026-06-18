@@ -42,6 +42,7 @@ import {
 	type SpeedRegion,
 	type TrimRegion,
 	type WebcamFocusRegion,
+	type WebcamHideRegion,
 	type WebcamOverlaySettings,
 	type WebcamPositionRegion,
 	type WebcamSizeRegion,
@@ -66,6 +67,7 @@ import {
 	type SpringState,
 	stepSpringValue,
 } from "./videoPlayback/motionSmoothing";
+import { getWebcamHideStateAtTime } from "./webcamHideRegions";
 import { getInterpolatedWebcamPositionAtTime } from "./webcamPositionRegions";
 import { getInterpolatedWebcamDimensionsAtTime } from "./webcamSizeRegions";
 
@@ -190,6 +192,7 @@ import {
 	getSnappedWebcamPositionPoint,
 	getWebcamAvoidCursorPosition,
 	getWebcamCropDrawLayout,
+	getWebcamHideTransform,
 	getWebcamOverlayPosition,
 	getWebcamOverlaySizePx,
 	getWebcamSizePercentFromPx,
@@ -366,6 +369,7 @@ interface VideoPlaybackProps {
 	webcamSizeRegions?: WebcamSizeRegion[];
 	webcamFocusRegions?: WebcamFocusRegion[];
 	selectedWebcamFocusRegionId?: string | null;
+	webcamHideRegions?: WebcamHideRegion[];
 	webcamPositionRegions?: WebcamPositionRegion[];
 	selectedWebcamPositionRegionId?: string | null;
 	onSelectWebcamPositionRegion?: (id: string | null) => void;
@@ -457,6 +461,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			webcamVideoPath,
 			webcamSizeRegions = [],
 			webcamFocusRegions = [],
+			webcamHideRegions = [],
 			webcamPositionRegions = [],
 			selectedWebcamPositionRegionId = null,
 			onSelectWebcamPositionRegion,
@@ -1021,6 +1026,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					y = clampedAvoidedPosition.y;
 				}
 
+				const hideState = getWebcamHideStateAtTime(webcamHideRegions, currentTimeRef.current);
+				const hideTransform = getWebcamHideTransform({
+					amount: hideState.amount,
+					edge: hideState.edge,
+					style: hideState.style,
+					x,
+					y,
+					width: scaledWidth,
+					height: scaledHeight,
+					containerWidth: overlay.clientWidth,
+					containerHeight: overlay.clientHeight,
+				});
+
 				bubble.style.display = "block";
 				bubble.style.left = `${x}px`;
 				bubble.style.top = `${y}px`;
@@ -1029,6 +1047,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				bubble.style.transition = "";
 				bubble.style.zIndex = focusState ? "6" : "";
 				bubble.style.aspectRatio = `${Math.max(1, scaledWidth)} / ${Math.max(1, scaledHeight)}`;
+				bubble.style.transform =
+					hideTransform.offsetX !== 0 || hideTransform.offsetY !== 0
+						? `translate(${hideTransform.offsetX}px, ${hideTransform.offsetY}px)`
+						: "";
+				bubble.style.opacity = hideTransform.opacity >= 1 ? "" : `${hideTransform.opacity}`;
 				const cropContent = webcamCropContentRef.current;
 				if (cropContent && webcamVideoDimensions) {
 					const cropLayout = getWebcamCropDrawLayout({
@@ -1073,6 +1096,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				getCurrentWebcamFocusState,
 				webcamMargin,
 				webcamPositionPreset,
+				webcamHideRegions,
 				webcamPositionRegions,
 				webcamPositionX,
 				webcamPositionY,

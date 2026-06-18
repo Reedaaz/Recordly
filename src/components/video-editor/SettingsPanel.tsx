@@ -65,6 +65,9 @@ import type {
 	FigureData,
 	Padding,
 	WebcamFocusRegion,
+	WebcamHideEdge,
+	WebcamHideRegion,
+	WebcamHideStyle,
 	WebcamOverlaySettings,
 	WebcamPositionPreset,
 	WebcamPositionRegion,
@@ -607,6 +610,26 @@ interface SettingsPanelProps {
 		durationMs: number,
 	) => void;
 	onWebcamPositionRegionDelete?: (id: string) => void;
+	webcamHideRegions?: WebcamHideRegion[];
+	selectedWebcamHideRegionId?: string | null;
+	onAddWebcamHideRegionAtPlayhead?: () => void;
+	onSelectWebcamHideRegion?: (id: string | null) => void;
+	onWebcamHideRegionEdgeChange?: (
+		id: string,
+		field: "exitEdge" | "enterEdge",
+		edge: WebcamHideEdge,
+	) => void;
+	onWebcamHideRegionStyleChange?: (
+		id: string,
+		field: "exitStyle" | "enterStyle",
+		style: WebcamHideStyle,
+	) => void;
+	onWebcamHideRegionTransitionChange?: (
+		id: string,
+		field: "transitionInMs" | "transitionOutMs",
+		durationMs: number,
+	) => void;
+	onWebcamHideRegionDelete?: (id: string) => void;
 	padding?: Padding;
 	onPaddingChange?: (padding: Padding) => void;
 	frame?: string | null;
@@ -1028,6 +1051,14 @@ export function SettingsPanel({
 	onSelectWebcamPositionRegion,
 	onWebcamPositionRegionTransitionChange,
 	onWebcamPositionRegionDelete,
+	webcamHideRegions = [],
+	selectedWebcamHideRegionId = null,
+	onAddWebcamHideRegionAtPlayhead,
+	onSelectWebcamHideRegion,
+	onWebcamHideRegionEdgeChange,
+	onWebcamHideRegionStyleChange,
+	onWebcamHideRegionTransitionChange,
+	onWebcamHideRegionDelete,
 	padding = DEFAULT_PADDING,
 	onPaddingChange,
 	frame = null,
@@ -3790,6 +3821,211 @@ export function SettingsPanel({
 												</div>
 											</div>
 										) : null}
+										{(() => {
+											const selectedWebcamHideRegion = selectedWebcamHideRegionId
+												? (webcamHideRegions.find(
+														(region) => region.id === selectedWebcamHideRegionId,
+													) ?? null)
+												: null;
+											const hideEdgeOptions: WebcamHideEdge[] = [
+												"bottom",
+												"top",
+												"left",
+												"right",
+											];
+											const hideStyleOptions: WebcamHideStyle[] = [
+												"slide",
+												"fade",
+												"slide-fade",
+												"instant",
+											];
+											return (
+												<div className="rounded-lg bg-foreground/[0.03] px-2.5 py-2 space-y-2">
+													<div className="flex items-center justify-between gap-2">
+														<div className="text-[10px] text-muted-foreground">
+															{tSettings("effects.webcamHide", "Hide camera")}
+														</div>
+														{onAddWebcamHideRegionAtPlayhead ? (
+															<button
+																type="button"
+																onClick={() => onAddWebcamHideRegionAtPlayhead()}
+																className="text-[10px] text-[#2563EB] transition-opacity hover:opacity-80"
+															>
+																{tSettings("effects.webcamHideAdd", "Hide at playhead")}
+															</button>
+														) : null}
+													</div>
+													{webcamHideRegions.length > 0 ? (
+														<div className="space-y-1">
+															{webcamHideRegions.map((region) => {
+																const isSelected =
+																	region.id === selectedWebcamHideRegionId;
+																return (
+																	<button
+																		key={region.id}
+																		type="button"
+																		onClick={() =>
+																			onSelectWebcamHideRegion?.(
+																				isSelected ? null : region.id,
+																			)
+																		}
+																		className={`flex w-full items-center justify-between rounded-md border px-2 py-1 text-[10px] transition-opacity hover:opacity-80 ${
+																			isSelected
+																				? "border-[#2563EB] text-foreground"
+																				: "border-foreground/10 text-foreground/80"
+																		}`}
+																	>
+																		<span className="font-mono">
+																			{formatRegionTime(region.startMs)}
+																			{" → "}
+																			{formatRegionTime(region.endMs)}
+																		</span>
+																		<span>{region.exitStyle}</span>
+																	</button>
+																);
+															})}
+														</div>
+													) : null}
+													{selectedWebcamHideRegion ? (
+														<div className="space-y-2">
+															<div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+																<span>
+																	{tSettings("effects.webcamHideLeave", "Leaves")}
+																</span>
+																<button
+																	type="button"
+																	onClick={() =>
+																		onWebcamHideRegionDelete?.(
+																			selectedWebcamHideRegion.id,
+																		)
+																	}
+																	className="text-[#2563EB] transition-opacity hover:opacity-80"
+																>
+																	{tSettings("common.delete", "Delete")}
+																</button>
+															</div>
+															<div className="grid grid-cols-2 gap-1">
+																<select
+																	value={selectedWebcamHideRegion.exitEdge}
+																	onChange={(event) =>
+																		onWebcamHideRegionEdgeChange?.(
+																			selectedWebcamHideRegion.id,
+																			"exitEdge",
+																			event.target.value as WebcamHideEdge,
+																		)
+																	}
+																	className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																>
+																	{hideEdgeOptions.map((edge) => (
+																		<option key={edge} value={edge}>
+																			{edge}
+																		</option>
+																	))}
+																</select>
+																<select
+																	value={selectedWebcamHideRegion.exitStyle}
+																	onChange={(event) =>
+																		onWebcamHideRegionStyleChange?.(
+																			selectedWebcamHideRegion.id,
+																			"exitStyle",
+																			event.target.value as WebcamHideStyle,
+																		)
+																	}
+																	className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																>
+																	{hideStyleOptions.map((style) => (
+																		<option key={style} value={style}>
+																			{style}
+																		</option>
+																	))}
+																</select>
+															</div>
+															<div className="text-[10px] text-muted-foreground">
+																{tSettings("effects.webcamHideReturn", "Returns")}
+															</div>
+															<div className="grid grid-cols-2 gap-1">
+																<select
+																	value={selectedWebcamHideRegion.enterEdge}
+																	onChange={(event) =>
+																		onWebcamHideRegionEdgeChange?.(
+																			selectedWebcamHideRegion.id,
+																			"enterEdge",
+																			event.target.value as WebcamHideEdge,
+																		)
+																	}
+																	className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																>
+																	{hideEdgeOptions.map((edge) => (
+																		<option key={edge} value={edge}>
+																			{edge}
+																		</option>
+																	))}
+																</select>
+																<select
+																	value={selectedWebcamHideRegion.enterStyle}
+																	onChange={(event) =>
+																		onWebcamHideRegionStyleChange?.(
+																			selectedWebcamHideRegion.id,
+																			"enterStyle",
+																			event.target.value as WebcamHideStyle,
+																		)
+																	}
+																	className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																>
+																	{hideStyleOptions.map((style) => (
+																		<option key={style} value={style}>
+																			{style}
+																		</option>
+																	))}
+																</select>
+															</div>
+															<div className="grid grid-cols-2 gap-2">
+																<label className="flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+																	{tSettings("effects.webcamHideLeaveMs", "Leave ms")}
+																	<input
+																		type="number"
+																		min={0}
+																		max={2000}
+																		step={50}
+																		value={
+																			selectedWebcamHideRegion.transitionInMs ?? 400
+																		}
+																		onChange={(event) =>
+																			onWebcamHideRegionTransitionChange?.(
+																				selectedWebcamHideRegion.id,
+																				"transitionInMs",
+																				Number(event.target.value),
+																			)
+																		}
+																		className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																	/>
+																</label>
+																<label className="flex flex-col gap-0.5 text-[10px] text-muted-foreground">
+																	{tSettings("effects.webcamHideReturnMs", "Return ms")}
+																	<input
+																		type="number"
+																		min={0}
+																		max={2000}
+																		step={50}
+																		value={
+																			selectedWebcamHideRegion.transitionOutMs ?? 400
+																		}
+																		onChange={(event) =>
+																			onWebcamHideRegionTransitionChange?.(
+																				selectedWebcamHideRegion.id,
+																				"transitionOutMs",
+																				Number(event.target.value),
+																			)
+																		}
+																		className="rounded-md border border-foreground/10 bg-transparent px-1 py-0.5 text-[10px] text-foreground"
+																	/>
+																</label>
+															</div>
+														</div>
+													) : null}
+												</div>
+											);
+										})()}
 										{(() => {
 											const selectedWebcamFocusRegion =
 												selectedWebcamFocusRegionId

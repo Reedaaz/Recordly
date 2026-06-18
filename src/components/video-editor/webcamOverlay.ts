@@ -1,4 +1,10 @@
-import type { CropRegion, WebcamCorner, WebcamPositionPreset } from "./types";
+import type {
+	CropRegion,
+	WebcamCorner,
+	WebcamHideEdge,
+	WebcamHideStyle,
+	WebcamPositionPreset,
+} from "./types";
 
 const MIN_WEBCAM_OVERLAY_SIZE_PX = 56;
 
@@ -196,6 +202,64 @@ export function clampWebcamOverlayPosition({
 		x: clamp(position.x, minX, maxX),
 		y: clamp(position.y, minY, maxY),
 	};
+}
+
+/**
+ * Translate + opacity to apply to the webcam overlay so it can slide off the
+ * nearest edge and/or fade out. Computed from the final on-screen box so the
+ * overlay leaves the visible area without touching the [0,1] position clamp.
+ * Pure + shared by preview and export so both stay in sync.
+ */
+export function getWebcamHideTransform({
+	amount,
+	edge,
+	style,
+	x,
+	y,
+	width,
+	height,
+	containerWidth,
+	containerHeight,
+}: {
+	amount: number;
+	edge: WebcamHideEdge;
+	style: WebcamHideStyle;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	containerWidth: number;
+	containerHeight: number;
+}): { offsetX: number; offsetY: number; opacity: number } {
+	const clampedAmount = clamp(amount, 0, 1);
+	if (clampedAmount <= 0) {
+		return { offsetX: 0, offsetY: 0, opacity: 1 };
+	}
+
+	const slides = style === "slide" || style === "slide-fade";
+	const fades = style === "fade" || style === "slide-fade" || style === "instant";
+
+	let offsetX = 0;
+	let offsetY = 0;
+	if (slides) {
+		switch (edge) {
+			case "bottom":
+				offsetY = clampedAmount * Math.max(0, containerHeight - y);
+				break;
+			case "top":
+				offsetY = -clampedAmount * Math.max(0, y + height);
+				break;
+			case "left":
+				offsetX = -clampedAmount * Math.max(0, x + width);
+				break;
+			case "right":
+				offsetX = clampedAmount * Math.max(0, containerWidth - x);
+				break;
+		}
+	}
+
+	const opacity = fades ? clamp(1 - clampedAmount, 0, 1) : 1;
+	return { offsetX, offsetY, opacity };
 }
 
 export function getSnappedWebcamPositionPoint(
